@@ -1,0 +1,67 @@
+<%- include('partials/header', { title: 'Admin - Escrow Management' }) %>
+
+<h2>Items Currently in Escrow</h2>
+
+<% if (!escrowItems || escrowItems.length === 0) { %>
+    <p>There are currently no items being held in escrow.</p>
+<% } else { %>
+    <table>
+        <thead>
+            <tr>
+                <th>Escrow ID</th>
+                <th>Found ID</th>
+                <th>Item Name</th>
+                <th>Escrow Status</th>
+                <th>Entered Escrow At</th> <!-- Formerly claimed_at in table -->
+                <th>Claimant Name</th> <!-- Added from JOIN -->
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            <% escrowItems.forEach(item => { %>
+                <tr>
+                    <td><%= item.escrow_id %></td>
+                    <td><%= item.found_id %></td>
+                    <td><%= item.item_name || 'N/A' %></td>
+                    <td><%= item.escrow_status %></td>
+                    <td><%= new Date(item.entered_escrow_at).toLocaleString() %></td>
+                    <td><%= item.claimant_name || 'N/A' %></td>
+                    <td>
+                        <% if (item.escrow_status === 'Holding') { %>
+                            <!-- Release Form -->
+                            <form action="/admin/escrow/release/<%= item.escrow_id %>" method="POST" class="inline-form">
+                                <button type="submit" class="admin-release-btn">Mark as Released</button>
+                            </form>
+                        <% } else { %>
+                            <%= item.escrow_status %>
+                            <% if (item.released_at) { %>
+                                <br><small>(<%= new Date(item.released_at).toLocaleString() %>)</small>
+                            <% } %>
+                        <% } %>
+                    </td>
+                </tr>
+            <% }); %>
+        </tbody>
+    </table>
+<% } %>
+
+<%- include('partials/footer') %>
+
+<!-- Optional: Add specific styles for release button -->
+<style>
+    /* Add these styles to your main CSS or keep them here */
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #ddd; padding: 10px; text-align: left; vertical-align: middle; }
+    th { background-color: #f2f2f2; font-weight: bold; }
+    .admin-release-btn {
+        padding: 5px 10px;
+        color: white;
+        background-color: #17a2b8; /* Teal/Info */
+        border: none;
+        border-radius: 3px;
+        cursor: pointer;
+        font-size: 0.9em;
+        margin: 2px;
+    }
+    .admin-release-btn:hover { background-color: #117a8b; }
+</style>

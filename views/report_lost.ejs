@@ -1,0 +1,28 @@
+<%- include('partials/header', { title: 'Report a Lost Item' }) %>
+
+<form action="/report-lost" method="POST">
+    <div>
+        <label for="item_name">Item Name:</label>
+        <input type="text" id="item_name" name="item_name" required>
+        <small>E.g., Black Backpack, iPhone 13, Silver Key</small>
+    </div>
+    <div>
+        <label for="category">Category:</label>
+        <input type="text" id="category" name="category" placeholder="e.g., Electronics, Keys, Wallet, Bag" required>
+    </div>
+    <div>
+        <label for="description">Description:</label>
+        <textarea id="description" name="description" rows="4" placeholder="Provide details like color, brand, distinguishing marks, contents (if applicable)."></textarea>
+    </div>
+    <div>
+        <label for="lost_date">Date Lost:</label>
+        <input type="date" id="lost_date" name="lost_date" required>
+    </div>
+    <div>
+        <label for="lost_location">Location Lost:</label>
+        <input type="text" id="lost_location" name="lost_location" placeholder="Be as specific as possible, e.g., Library Room 201, Central Park near South Gate" required>
+    </div>
+    <button type="submit">Submit Lost Item Report</button>
+</form>
+
+<%- include('partials/footer') %>

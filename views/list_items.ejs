@@ -1,0 +1,57 @@
+<%- include('partials/header', { title: title }) %> <!-- Use title passed from route -->
+<% if (typeof successMessage !== 'undefined' && successMessage) { %>
+    <div class="alert alert-success"><%= successMessage %></div>
+<% } %>
+<% if (typeof errorMessage !== 'undefined' && errorMessage) { %>
+    <div class="alert alert-danger"><%= errorMessage %></div>
+<% } %>
+<% if (items && items.length > 0) { %>
+    <p>Showing <%= items.length %> item(s).</p>
+    <ul class="item-list">
+        <% items.forEach(item => { %>
+            <li>
+                <h3><%= item.item_name %></h3>
+                <p><strong>Category:</strong> <%= item.category %></p>
+                <p><strong>Description:</strong> <%= item.description || 'No description provided.' %></p>
+
+                <% if (type === 'found') { %>
+                    <!-- Display Found Item Details -->
+                    <p><strong>Date Found:</strong> <%= new Date(item.found_date).toLocaleDateString() %></p>
+                    <p><strong>Location Found:</strong> <%= item.found_location %></p>
+                    <p><strong>Status:</strong> <span class="status-<%= item.status ? item.status.toLowerCase() : 'unknown' %>"><%= item.status || 'Unknown' %></span></p>
+                    <p><small>Reported on: <%= new Date(item.reported_at).toLocaleString() %></small></p>
+
+                    <!-- Add Claim Button only if item is Available -->
+                    <% if (item.status === 'Available') { %>
+                        <form action="/claim/<%= item.found_id %>" method="POST" class="inline-form">
+                            <button type="submit" class="claim-button">Claim This Item</button>
+                        </form>
+                    <% } %>
+
+                <% } else if (type === 'lost') { %>
+                    <!-- Display Lost Item Details -->
+                    <p><strong>Date Lost:</strong> <%= new Date(item.lost_date).toLocaleDateString() %></p>
+                    <p><strong>Location Lost:</strong> <%= item.lost_location %></p>
+                    <p><strong>Status:</strong> <span class="status-<%= item.status ? item.status.toLowerCase() : 'unknown' %>"><%= item.status || 'Unknown' %></span></p>
+                    <p><small>Reported on: <%= new Date(item.reported_at).toLocaleString() %></small></p>
+                    <!-- Add other actions for lost items later if needed -->
+
+                <% } %>
+            </li>
+        <% }); %>
+    </ul>
+<% } else { %>
+    <p>No <%= type %> items found matching the criteria.</p>
+<% } %>
+
+<%- include('partials/footer') %>
+
+<!-- Add some specific styling for status later in style.css -->
+<style>
+    .status-available { color: green; font-weight: bold; }
+    .status-reported { color: orange; font-weight: bold; }
+    .status-claimed, .status-matched, .status-returned { color: blue; font-weight: bold; }
+    .status-claimpending { color: purple; font-weight: bold; } /* Add if you use this status */
+    .status-rejected { color: red; } /* Add if you use this status */
+    .status-unknown { color: grey; }
+</style>

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Use the title variable passed from the route -->
+    <title><%= typeof title !== 'undefined' ? title : 'Lost & Found' %></title>
+    <link rel="stylesheet" href="/css/styles.css">
+   
+</head>
+<body>
+    <div class="container">
+        <nav>
+            <a href="/">Home</a>
+            <a href="/report-lost">Report Lost Item</a>
+            <a href="/report-found">Report Found Item</a>
+            <a href="/lost-items">View Lost Items</a>
+            <a href="/found-items">View Found Items</a>
+            <a href="/admin/claims" style="color: red; font-weight:bold;">Admin: Manage Claims</a>
+<a href="/admin/escrow" style="color: darkorange; font-weight:bold;">Admin: Manage Escrow</a>
+        </nav>
+        <!-- Page title heading -->
+        <h1><%= typeof title !== 'undefined' ? title : 'Lost & Found' %></h1>
+        <hr>
+        <!-- Main content will be injected here -->

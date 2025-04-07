@@ -1,0 +1,74 @@
+<%- include('partials/header', { title: 'Admin - Manage Claims' }) %>
+
+<h2>Pending Item Claims</h2>
+
+<% if (!claims || claims.length === 0) { %>
+    <p>There are currently no pending claims to review.</p>
+<% } else { %>
+    <table>
+        <thead>
+            <tr>
+                <th>Claim ID</th>
+                <th>Requested At</th>
+                <th>Claimant Name</th>
+                <th>Claimant Email</th>
+                <th>Found Item ID</th>
+                <th>Item Name</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            <% claims.forEach(claim => { %>
+                <tr>
+                    <td><%= claim.claim_id %></td>
+                    <td><%= new Date(claim.requested_at).toLocaleString() %></td>
+                    <td><%= claim.claimant_name || 'N/A' %></td>
+                    <td><%= claim.claimant_email || 'N/A' %></td>
+                    <td><%= claim.found_id %></td>
+                    <td><%= claim.item_name %></td>
+                    <td><%= claim.claim_status %></td>
+                    <td>
+                        <% if (claim.claim_status === 'pending') { %>
+                            <!-- Approve Form -->
+                            <form action="/admin/claims/update/<%= claim.claim_id %>" method="POST" class="inline-form">
+                                <input type="hidden" name="action" value="approve">
+                                <button type="submit" class="admin-approve-btn">Approve</button>
+                            </form>
+                            <!-- Reject Form -->
+                            <form action="/admin/claims/update/<%= claim.claim_id %>" method="POST" class="inline-form">
+                                <input type="hidden" name="action" value="reject">
+                                <button type="submit" class="admin-reject-btn">Reject</button>
+                            </form>
+                        <% } else { %>
+                            <!-- Show status if already processed -->
+                            <%= claim.claim_status %>
+                        <% } %>
+                    </td>
+                </tr>
+            <% }); %>
+        </tbody>
+    </table>
+<% } %>
+
+<%- include('partials/footer') %>
+
+<!-- Optional: Add specific styles for admin buttons -->
+<style>
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #ddd; padding: 10px; text-align: left; vertical-align: middle; }
+    th { background-color: #f2f2f2; font-weight: bold; }
+    .admin-approve-btn, .admin-reject-btn {
+        padding: 5px 10px;
+        color: white;
+        border: none;
+        border-radius: 3px;
+        cursor: pointer;
+        font-size: 0.9em;
+        margin: 2px;
+    }
+    .admin-approve-btn { background-color: #28a745; } /* Green */
+    .admin-approve-btn:hover { background-color: #218838; }
+    .admin-reject-btn { background-color: #dc3545; } /* Red */
+    .admin-reject-btn:hover { background-color: #c82333; }
+</style>

@@ -1,0 +1,28 @@
+<%- include('partials/header', { title: 'Report a Found Item' }) %>
+
+<form action="/report-found" method="POST">
+    <div>
+        <label for="item_name">Item Name:</label>
+        <input type="text" id="item_name" name="item_name" required>
+        <small>E.g., Blue Umbrella, Brown Wallet, Single Earbud</small>
+    </div>
+    <div>
+        <label for="category">Category:</label>
+        <input type="text" id="category" name="category" placeholder="e.g., Accessories, Clothing, Electronics" required>
+    </div>
+    <div>
+        <label for="description">Description:</label>
+        <textarea id="description" name="description" rows="4" placeholder="Provide details like color, brand, condition, any identifying marks."></textarea>
+    </div>
+    <div>
+        <label for="found_date">Date Found:</label>
+        <input type="date" id="found_date" name="found_date" required>
+    </div>
+    <div>
+        <label for="found_location">Location Found:</label>
+        <input type="text" id="found_location" name="found_location" placeholder="Be as specific as possible, e.g., Cafeteria Table 5, Bus Stop on Main St, Park Bench near Playground" required>
+    </div>
+    <button type="submit">Submit Found Item Report</button>
+</form>
+
+<%- include('partials/footer') %>
