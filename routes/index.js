@@ -2,8 +2,25 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db'); // Import the database connection pool promise
-
+const session = require('express-session');
+const passport = require('passport');
 console.log("[ROUTES] index.js loaded.");
+
+const app = express();
+
+app.use(session({
+    secret: "apt",  // Change this to a strong secret key
+    resave: false,
+    saveUninitialized: false,
+    cookie: { secure: false }  // Set to true if using HTTPS
+}));
+
+app.use(passport.initialize());
+app.use(passport.session());
+
+router.get('/test', (req, res) => {
+    res.json({ message: "Test route working!" });
+});
 
 // --- GET Home Page ---
 router.get('/', (req, res) => {
@@ -37,6 +54,83 @@ router.get('/testdb', async (req, res, next) => {
 });
 
 // routes/index.js
+
+router.post('/', (req, res) => {
+    res.status(200).json({ message: 'POST request received!' });
+});
+
+router.post("/register", async (req, res) => {
+    const { username, password } = req.body;
+    if (!username || !password) {
+        return res.status(400).json({ message: "Username and password are required" });
+    }
+    try {
+        const [existingUser] = await db.query("SELECT * FROM users WHERE username = ?", [username]);
+        if (existingUser.length > 0) {
+            return res.status(400).json({ message: "User already exists" });
+        }
+        await db.query("INSERT INTO users (username, password) VALUES (?, ?)", [username, password]);
+        res.status(201).json({ message: "User registered successfully" });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Internal server error" });
+    }
+});
+
+router.post('/login', async (req, res) => {
+    const { email, password } = req.body;
+    console.log("Login attempt for:", email);
+
+    try {
+        const [user] = await db.query("SELECT * FROM users WHERE email = ?", [email]);
+
+        if (user.length === 0) {
+            return res.status(401).json({ message: "User not found" });
+        }
+
+        const isMatch = await bcrypt.compare(password, user[0].password);
+        if (!isMatch) {
+            return res.status(401).json({ message: "Incorrect password" });
+        }
+
+        req.session.user = user[0];  // Store user session
+        res.json({ message: "Login successful", user: user[0] });
+    } catch (error) {
+        console.error("[ERROR] Login Failed:", error);
+        res.status(500).json({ message: "Internal server error" });
+    }
+});
+
+// Middleware to check if user is authenticated
+function isAuthenticated(req, res, next) {
+    if (req.session && req.session.userId) {
+        return next();
+    } else {
+        return res.status(401).json({ message: 'Unauthorized. Please log in first.' });
+    }
+}
+
+// Claim Lost Item Route (Only for Logged-in Users)
+router.post('/claim-item/:itemId', isAuthenticated, async (req, res) => {
+    try {
+        const { itemId } = req.params;
+        const userId = req.session.userId;
+        
+        // Check if item exists and is available
+        const [item] = await db.query("SELECT * FROM lost_items WHERE id = ? AND status = 'Reported'", [itemId]);
+        if (item.length === 0) {
+            return res.status(404).json({ message: 'Item not found or already claimed.' });
+        }
+        
+        // Update item status and assign to user
+        await db.query("UPDATE lost_items SET status = 'Claimed', claimed_by = ? WHERE id = ?", [userId, itemId]);
+        
+        res.json({ message: 'Item successfully claimed!' });
+    } catch (error) {
+        console.error('[ERROR] Claiming item:', error);
+        res.status(500).json({ message: 'Internal Server Error' });
+    }
+});
 
 // ... (keep existing require statements, router setup, / and /testdb routes) ...
 
@@ -144,7 +238,7 @@ router.post('/report-found', async (req, res, next) => {
 
     try {
         console.log("[ROUTES] Attempting to insert found item into database...");
-        const sql = `INSERT INTO found_item
+        const sql = `INSERT INTO found_items
                      (user_id, item_name, category, description, found_date, found_location, status)
                      VALUES (?, ?, ?, ?, ?, ?, ?)`;
         const [result] = await db.query(sql, [
@@ -184,7 +278,7 @@ router.get('/found-items', async (req, res, next) => {
         const sql = `SELECT
                         found_id, item_name, category, description,
                         found_date, found_location, status, reported_at
-                     FROM found_item
+                     FROM found_items
                      WHERE status = 'Available' OR status = 'Claim Pending'
                      ORDER BY reported_at DESC`; // Show newest first
 
@@ -230,10 +324,10 @@ router.post('/claim/:found_id', async (req, res, next) => {
     const claimingUserId = 1;
 
     try {
-        console.log(`[ROUTES] Checking status of found_item with ID: ${foundIdInt}`);
+        console.log(`[ROUTES] Checking status of found_items with ID: ${foundIdInt}`);
         // --- Check 1: Ensure the item exists and is actually available ---
         const [itemCheck] = await db.query(
-            "SELECT status FROM found_item WHERE found_id = ?",
+            "SELECT status FROM found_items WHERE found_id = ?",
             [foundIdInt]
         );
 
@@ -270,12 +364,12 @@ router.post('/claim/:found_id', async (req, res, next) => {
 
         console.log(`[ROUTES] Claim request inserted successfully. Claim ID: ${result.insertId}`);
 
-        // --- Optional: Update found_item status to 'Claim Pending' ---
+        // --- Optional: Update found_items status to 'Claim Pending' ---
         // This prevents others from claiming while this one is reviewed.
         // You could also handle this with a trigger if preferred.
-        console.log(`[ROUTES] Updating status of found_item ${foundIdInt} to 'Claim Pending'.`);
+        console.log(`[ROUTES] Updating status of found_items ${foundIdInt} to 'Claim Pending'.`);
         await db.query(
-            "UPDATE found_item SET status = 'Claim Pending' WHERE found_id = ?",
+            "UPDATE found_items SET status = 'Claim Pending' WHERE found_id = ?",
             [foundIdInt]
         );
         console.log(`[ROUTES] Status updated for item ${foundIdInt}.`);
@@ -381,7 +475,7 @@ router.get('/admin/claims', async (req, res, next) => {
                 fi.found_id, fi.item_name, fi.status AS item_status
             FROM claim_requests cr
             LEFT JOIN users u ON cr.user_id = u.user_id         -- LEFT JOIN in case user was deleted but claim remains
-            LEFT JOIN found_item fi ON cr.found_id = fi.found_id -- LEFT JOIN in case item was deleted
+            LEFT JOIN found_items fi ON cr.found_id = fi.found_id -- LEFT JOIN in case item was deleted
             WHERE cr.status = 'pending' -- Only show pending claims
             ORDER BY cr.requested_at ASC -- Show oldest first
         `;
@@ -437,7 +531,7 @@ router.post('/admin/claims/update/:claim_id', async (req, res, next) => {
         if (result.affectedRows > 0) {
             console.log(`[ROUTES][Admin] Claim ${claimIdInt} status updated to ${newStatus}. Trigger should handle item status.`);
 
-            // Rely on the trigger to update found_item status
+            // Rely on the trigger to update found_items status
             // If trigger fails, you might need manual updates here later
 
         } else {
@@ -472,7 +566,7 @@ router.get('/admin/escrow', async (req, res, next) => {
                 fi.found_id, fi.item_name,
                 u.name AS claimant_name -- Get claimant name via approved claim
             FROM escrow e
-            JOIN found_item fi ON e.found_id = fi.found_id
+            JOIN found_items fi ON e.found_id = fi.found_id
             -- Find the approved claim for this found_id to get the user
             LEFT JOIN claim_requests cr ON fi.found_id = cr.found_id AND cr.status = 'Approved'
             LEFT JOIN users u ON cr.user_id = u.user_id
@@ -520,10 +614,10 @@ router.post('/admin/escrow/release/:escrow_id', async (req, res, next) => {
 
         if (result.affectedRows > 0) {
             console.log(`[ROUTES][Admin] Escrow item ${escrowIdInt} marked as Released.`);
-            // Optional: Update the corresponding found_item status as well? e.g., to 'Returned'
+            // Optional: Update the corresponding found_items status as well? e.g., to 'Returned'
             // const [escrowData] = await db.query("SELECT found_id FROM escrow WHERE escrow_id = ?", [escrowIdInt]);
             // if (escrowData.length > 0) {
-            //     await db.query("UPDATE found_item SET status = 'Returned' WHERE found_id = ?", [escrowData[0].found_id]);
+            //     await db.query("UPDATE found_items SET status = 'Returned' WHERE found_id = ?", [escrowData[0].found_id]);
             // }
         } else {
             console.warn(`[ROUTES][Admin] Escrow item ${escrowIdInt} not updated. May not exist or was not 'Holding'.`);
@@ -537,6 +631,4 @@ router.post('/admin/escrow/release/:escrow_id', async (req, res, next) => {
         next(err);
     }
 });
-
-
 module.exports = router; // Export the router object

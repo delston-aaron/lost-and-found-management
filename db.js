@@ -1,11 +1,14 @@
 // db.js
 const mysql = require('mysql2');
 
+const db = require('./db');  // Import database connection
+
+
 // Create a connection pool (recommended for web applications)
 const pool = mysql.createPool({
   host: 'localhost',           // Your MySQL host (usually localhost)
   user: 'root',                // Your MySQL username
-  password: 'cadlee',          // --- CHANGE THIS TO YOUR MYSQL PASSWORD ---
+  password: 'qwerty_123',          // --- CHANGE THIS TO YOUR MYSQL PASSWORD ---
   database: 'lost_and_found_db',// The database name you created
   waitForConnections: true,
   connectionLimit: 10,         // Adjust as needed

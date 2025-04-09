@@ -6,6 +6,12 @@ const bodyParser = require('body-parser'); // Add body-parser back
 const path = require('path');             // Add path back
 console.log("[SERVER] Required core modules.");
 
+const session = require('express-session');
+const passport = require('passport');
+const routes = require('./routes/index'); // Import routes after setting up Express
+
+
+
 // --- Load DB ---
 let db;
 try {
@@ -19,15 +25,34 @@ try {
 // --- End Load DB ---
 
 // --- Load Routes (placeholder for now) ---
+
 // We will create routes/index.js next
 const mainRoutes = require('./routes/index'); // Require the routes file
 console.log("[SERVER] Loaded routes from routes/index.js");
 // --- End Load Routes ---
-
-
 const app = express();
 console.log("[SERVER] Created Express app.");
 const port = process.env.PORT || 3000;
+
+
+
+// Middleware setup
+app.use(express.json()); 
+app.use(express.urlencoded({ extended: true }));
+
+// 🛠️ FIX: Session middleware should be BEFORE passport middleware
+app.use(session({
+    secret: 'your_secret_key',  // Change this to a strong secret
+    resave: false,
+    saveUninitialized: false
+}));
+
+// Initialize Passport and sessions
+app.use(passport.initialize());
+app.use(passport.session());
+
+// Routes setup (Now 'app' is already defined)
+app.use('/', routes);
 
 // --- Middleware ---
 console.log("[SERVER] Setting up middleware...");
